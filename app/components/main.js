@@ -2,36 +2,51 @@
  * Created by syouon.
  */
 
-var data = [
-    {id: 0, label: "Task number 1"},
-    {id: 1, label: "Task number 2"},
-    {id: 2, label: "Task number 3"}
-];
-
 var TodoPage = React.createClass({
     getInitialState: function () {
         return {
-            freeId: 3,
-            data: this.props.data
+            data: []
         };
     },
 
-    onAddingTask: function (label) {
-        data.push({ id: this.state.freeId, label: label});
-        var newFreeId = this.state.freeId+1;
-        var newState = {
-            freeId: newFreeId,
-            data: data
-        };
-        this.setState(newState);
+    getTasks: function () {
+        $.ajax({
+            url: this.props.serverUrl,
+            dataType: 'json',
+            cache: false,
+            success: function(data) {
+                this.setState({ data: data });
+            }.bind(this),
+            error: function(xhr, status, err) {
+                console.error(this.props.serverUrl, status, err.toString());
+            }.bind(this)
+        });
+    },
+
+    componentDidMount: function () {
+        this.getTasks();
+    },
+
+    onAddingTask: function (task) {
+        $.ajax({
+            url: this.props.serverUrl,
+            type: 'post',
+            data: 'task=' + task,
+            success: function() {
+                this.getTasks();
+            }.bind(this),
+            error: function(xhr, status, err) {
+                console.error(this.props.serverUrl, status, err.toString());
+            }.bind(this)
+        });
     },
 
     render: function () {
         return (
             <div>
                 <h1>Todo list</h1>
-                <TodoForm onSubmit={this.onAddingTask} />
-                <TodoList data={this.state.data} />
+                <TodoForm onSubmit={this.onAddingTask}/>
+                <TodoList data={this.state.data}/>
             </div>
         );
     }
@@ -39,7 +54,7 @@ var TodoPage = React.createClass({
 
 var TodoForm = React.createClass({
     getInitialState: function () {
-        return { task: '' };
+        return {task: ''};
     },
 
     submitting: function () {
@@ -47,14 +62,14 @@ var TodoForm = React.createClass({
     },
 
     onInputChange: function (e) {
-        this.setState({ task: e.target.value});
+        this.setState({task: e.target.value});
     },
 
     render: function () {
         return (
             <form onSubmit={this.submitting}>
-                <input type="text" placeholder="What's next?" value={this.state.task} onChange={this.onInputChange} />
-                <input type="submit" />
+                <input type="text" placeholder="What's next?" value={this.state.task} onChange={this.onInputChange}/>
+                <input type="submit"/>
             </form>
         );
     }
@@ -63,8 +78,8 @@ var TodoForm = React.createClass({
 var TodoList = React.createClass({
 
     render: function () {
-        var tasks = this.props.data.map(function (task) {
-            return <TodoTask key={task.id}>{task.label}</TodoTask>;
+        var tasks = this.props.data.map(function (todo) {
+            return <TodoTask key={todo.id}>{todo.task}</TodoTask>;
         });
         return <ul>{tasks}</ul>;
     }
@@ -79,6 +94,6 @@ var TodoTask = React.createClass({
 });
 
 ReactDOM.render(
-    <TodoPage data={data} />,
+    <TodoPage serverUrl="http://localhost:8080/todos"/>,
     document.getElementById('content')
 );
